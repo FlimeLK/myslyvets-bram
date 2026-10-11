@@ -1,0 +1,5 @@
+bot/.env
+bot/bot.log
+bot/bot.pid
+__pycache__/
+.DS_Store
