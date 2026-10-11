@@ -13,9 +13,11 @@ import sys
 import time
 import urllib.error
 import urllib.request
+import uuid
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
 
 
 def load_env():
@@ -73,9 +75,22 @@ def log(*parts):
     print(time.strftime("%Y-%m-%d %H:%M:%S"), *parts, flush=True)
 
 
-def call(method, params=None, timeout=30):
-    body = json.dumps({k: v for k, v in (params or {}).items() if v is not None}).encode("utf-8")
-    req = urllib.request.Request(API.format(TOKEN, method), data=body, headers={"Content-Type": "application/json"})
+def call(method, params=None, timeout=30, files=None):
+    params = {k: v for k, v in (params or {}).items() if v is not None}
+    if files:
+        boundary = uuid.uuid4().hex
+        parts = []
+        for key, value in params.items():
+            value = value if isinstance(value, str) else json.dumps(value, ensure_ascii=False)
+            parts.append('--{}\r\nContent-Disposition: form-data; name="{}"\r\n\r\n{}\r\n'.format(boundary, key, value).encode("utf-8"))
+        for key, (fname, data, ctype) in files.items():
+            parts.append('--{}\r\nContent-Disposition: form-data; name="{}"; filename="{}"\r\nContent-Type: {}\r\n\r\n'.format(
+                boundary, key, fname, ctype).encode("utf-8") + data + b"\r\n")
+        parts.append("--{}--\r\n".format(boundary).encode("utf-8"))
+        body, ctype_header = b"".join(parts), "multipart/form-data; boundary=" + boundary
+    else:
+        body, ctype_header = json.dumps(params).encode("utf-8"), "application/json"
+    req = urllib.request.Request(API.format(TOKEN, method), data=body, headers={"Content-Type": ctype_header})
     try:
         with urllib.request.urlopen(req, timeout=timeout, context=SSL_CTX) as resp:
             data = json.loads(resp.read().decode("utf-8"))
@@ -106,9 +121,14 @@ def send(chat_id, text, private=True, keyboard=True):
     call("sendMessage", params)
 
 
+ADMIN = None
+
+
 def handle(update):
     query = update.get("callback_query")
     if query:
+        if ADMIN and ADMIN.on_callback(query):
+            return
         call("answerCallbackQuery", {"callback_query_id": query["id"]})
         msg = query.get("message")
         if msg and query.get("data") == "help":
@@ -123,6 +143,10 @@ def handle(update):
     text = (msg.get("text") or "").strip()
     command = text.split()[0].split("@")[0].lower() if text.startswith("/") else ""
     name = html.escape((msg.get("from") or {}).get("first_name") or "Мисливцю")
+    if ADMIN:
+        ADMIN.track(msg.get("from"), chat.get("type"), is_start=command == "/start")
+        if ADMIN.on_command(msg, command):
+            return
 
     if command in ("/start", "/play"):
         send(chat["id"], WELCOME.format(name=name) if command == "/start" else "Брами чекають. Тисни «Грати».", private)
@@ -141,20 +165,49 @@ def setup():
     call("deleteWebhook", {"drop_pending_updates": False})
     call("setMyCommands", {"commands": COMMANDS})
     call("setChatMenuButton", {"menu_button": {"type": "web_app", "text": "Грати", "web_app": {"url": WEBAPP_URL}}})
+    for admin_id in (ADMIN.ids if ADMIN else []):
+        try:
+            call("setMyCommands", {"commands": COMMANDS + [{"command": "admin", "description": "Адмін-панель"}],
+                                   "scope": {"type": "chat", "chat_id": admin_id}})
+        except Exception as err:  # адмін ще не писав боту
+            log("Меню адміна {}: {}".format(admin_id, err))
     log("Бот @{} запущено. Гра: {}".format(BOT_USERNAME, WEBAPP_URL))
 
 
 def stop(_signum, _frame):
     global RUNNING
     RUNNING = False
+    if ADMIN:
+        ADMIN.save(force=True)
     log("Зупиняюсь…")
     sys.exit(0)
 
 
+def check():
+    """Швидка перевірка токена й зв’язку з Telegram для start.sh. Код виходу: 0 добре, 2 токен, 1 інше."""
+    try:
+        me = call("getMe", timeout=15)
+        print("Токен прийнято, бот @{} на зв’язку.".format(me.get("username")), flush=True)
+        return 0
+    except ssl.SSLError as err:
+        print("SSL-помилка:", err, flush=True)
+        print("Якщо це Python з python.org — запусти «Install Certificates.command» у папці Applications/Python 3.x.", flush=True)
+        return 1
+    except Exception as err:
+        print("Не вдалось зв’язатися з Telegram:", err, flush=True)
+        return 2 if ("401" in str(err) or "Unauthorized" in str(err) or "404" in str(err)) else 1
+
+
 def main():
     if not TOKEN or ":" not in TOKEN:
-        print("Немає токена. Запусти bot/start.sh — він попросить вставити токен від @BotFather.")
-        sys.exit(1)
+        print("Немає токена. Запусти bot/start.sh — він попросить вставити токен від @BotFather.", flush=True)
+        sys.exit(2)
+    if "--check" in sys.argv:
+        sys.exit(check())
+    global ADMIN
+    from admin import Admin
+    ADMIN = Admin(call, log, ENV)
+    ADMIN.webapp_url = WEBAPP_URL
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
 
@@ -187,8 +240,11 @@ def main():
             offset = update["update_id"] + 1
             try:
                 handle(update)
+                ADMIN.handled += 1
             except Exception as err:
+                ADMIN.errors += 1
                 log("Помилка обробки:", err)
+        ADMIN.save()
 
 
 if __name__ == "__main__":

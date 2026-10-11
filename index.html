@@ -455,6 +455,33 @@ main{padding-block:6px calc(92px + env(safe-area-inset-bottom,0px))}
   .mtiles{grid-template-columns:repeat(2,1fr)}
   .ab{font-size:11.5px}
 }
+/* ---------- admin panel ---------- */
+.adm-banner{display:flex;align-items:center;gap:12px;margin-top:14px;padding:12px 14px;border:1px solid var(--gold-deep);border-radius:3px;
+  background:linear-gradient(90deg,rgba(243,197,96,.16),rgba(243,197,96,.03));box-shadow:0 0 18px rgba(243,197,96,.15),inset 0 0 12px rgba(243,197,96,.08)}
+.adm-banner>.ic{width:28px;height:28px;flex:none;color:var(--gold);filter:drop-shadow(0 0 8px rgba(243,197,96,.6))}
+.adm-banner b{display:block;font:700 14px/1.2 var(--f-display);letter-spacing:.06em;text-transform:uppercase;color:var(--gold)}
+.adm-banner small{display:block;margin-top:3px;font-size:12px;color:var(--ink-2)}
+.adm-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 10px;padding:8px 0;border-bottom:1px solid rgba(34,65,111,.5)}
+.adm-row:last-child{border-bottom:0}
+.adm-lab{display:inline-flex;align-items:center;gap:6px;font:600 13px/1.2 var(--f-display);letter-spacing:.03em;color:var(--ink)}
+.adm-lab .ic{width:18px;height:18px;color:var(--sys)}
+.adm-btns{display:flex;flex-wrap:wrap;gap:6px}
+.adm-btns .btn{min-width:56px;font-family:var(--f-mono)}
+.adm-grid,.adm-grid3{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:end}
+.adm-grid3{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+@media (max-width:380px){.adm-grid3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.adm-grid label,.adm-grid3 label{display:flex;flex-direction:column;gap:5px;min-width:0;font-size:11.5px;color:var(--ink-2);letter-spacing:.04em;text-transform:uppercase}
+.adm-in{width:100%;min-width:0;height:44px;box-sizing:border-box;padding:0 10px;border:1px solid var(--line);border-radius:3px;background:var(--well);color:var(--ink);
+  font:500 15px/1 var(--f-body);text-transform:none;letter-spacing:0;-webkit-appearance:none;appearance:none}
+select.adm-in{padding-right:26px;background-image:linear-gradient(45deg,transparent 50%,var(--sys) 50%),linear-gradient(135deg,var(--sys) 50%,transparent 50%);
+  background-position:calc(100% - 14px) 19px,calc(100% - 9px) 19px;background-size:5px 5px;background-repeat:no-repeat;text-overflow:ellipsis}
+.adm-in.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.adm-in:focus{outline:none;border-color:var(--sys);box-shadow:0 0 0 2px rgba(98,208,255,.25)}
+.adm-in::placeholder{color:var(--ink-3)}
+.adm-grid label.adm-check{flex-direction:row;align-items:center;gap:8px;height:44px;padding:0 10px;border:1px solid var(--line);border-radius:3px;background:var(--well);color:var(--ink);font-size:13px;text-transform:none;cursor:pointer}
+.adm-check input{width:18px;height:18px;margin:0;accent-color:var(--gold)}
+.mt.adm-tile{border-color:var(--gold-deep);background:linear-gradient(180deg,#4a3a12,#2e240a);color:var(--gold)}
+.mt.adm-tile .ic{color:var(--gold)}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
   .stagebox.shake{animation:none}
@@ -2216,7 +2243,7 @@ const rerender = () => render(true);
 function tabView(t){ return ({hunter:vHunter, gates:vGates, arena:vArena, bag:vBag, more:vMore}[t] || vHunter)(); }
 function subView(v){
   const map = {quest:['Квест дня', vQuest], wheel:['Колесо', vWheel], mail:['Пошта', vMail], shop:['Магазин', vShop], skills:['Навички', vSkills], classes:['Класи', vClasses], how:['Як грати', vHow], stats:['Статистика', vStats]};
-  const m = map[v]; if (!m) return tabView(UI.tab);
+  const m = map[v] || extraViews[v]; if (!m) return tabView(UI.tab);
   return '<div class="subhead"><button class="back" data-a="back">' + ic('back') + 'Назад</button><h2>' + m[0] + '</h2></div>' + m[1]();
 }
 function win(title, body, kind, cls){ return '<section class="win' + (cls ? ' ' + cls : '') + '">' + iiPlate(title, kind) + body + '</section>'; }
@@ -2428,6 +2455,7 @@ function vMore(){
   html += '<div class="mgroup"><h3>Герой</h3><div class="mtiles">' + mt('go', 'skills', 'skills', 'Навички') + mt('go', 'classes', 'mask', 'Класи') + mt('go', 'stats', 'chart', 'Статистика') + '</div></div>';
   html += '<div class="mgroup"><h3>Почитати</h3><div class="mtiles">' + mt('go', 'how', 'book', 'Як грати') + mt('altar', '', 'altar', 'Вівтар') + mt('tab', 'arena', 'n_arena', 'Арена') + '</div></div>';
   const sw = (k, label, sub) => '<div class="setrow"><span>' + label + '<small>' + sub + '</small></span><button class="sw" role="switch" aria-checked="' + (!!S.settings[k]) + '" data-a="setting" data-v="' + k + '" aria-label="' + label + '"></button></div>';
+  html += extraMore();
   html += '<div class="mgroup"><h3>Налаштування</h3>' + sw('fx', 'Ефекти бою', 'спалахи, тряска, частинки') + sw('fast', 'Швидкий авто-бій', 'авто робить ходи вдвічі швидше') + sw('autoSell', 'Автопродаж звичайних речей', 'при виході з брами') +
     '<div class="setrow"><span>Почати заново<small>видаляє героя і весь прогрес</small></span><button class="btn red sm" data-a="resetGame">Скинути</button></div></div>';
   return html;
@@ -2498,8 +2526,9 @@ function vWheel(){
 function mailRewardText(rw){
   if (!rw) return '';
   const p = [];
+  if (rw.en) p.push(ic('energy') + rw.en); if (rw.shards) p.push(ic('shard') + rw.shards);
   if (rw.cry) p.push(ic('gem') + rw.cry); if (rw.gold) p.push(ic('coin') + fmt(rw.gold)); if (rw.potHp) p.push(ic('pot_hp') + rw.potHp); if (rw.potMp) p.push(ic('pot_mp') + rw.potMp);
-  if (rw.item) p.push('<span style="color:' + RAR[rw.item.r].hex + '">' + (rw.item.slot === 'weapon' ? 'легендарна зброя класу' : RAR[rw.item.r].name.toLowerCase() + ' річ') + '</span>');
+  if (rw.item) p.push('<span style="color:' + RAR[rw.item.r].hex + '">' + RAR[rw.item.r].name.toLowerCase() + ' спорядження (' + (rw.item.slot === 'weapon' ? 'зброя класу' : SLOT[rw.item.slot].n) + ')' + '</span>');
   return p.join(' · ');
 }
 function vMail(){
@@ -2607,6 +2636,10 @@ function classSheet(id){
     '<button class="btn blue wide" style="margin-top:14px;position:sticky;bottom:0" data-a="reborn" data-v="' + id + '">Переродитися</button>');
 }
 let defaultName = () => pick(HERO_NAMES);
+let extraViews = {};
+let extraMore = () => '';
+let extraActions = {};
+let onHeroCreated = () => {};
 function nameSheet(cls){
   const sug = defaultName();
   openSheet(iiPlate('Нове ім’я') + '<p class="lead">Як тебе звуть у цьому світі? Ім’я бачитимуть суперники на арені.</p>' +
@@ -3123,6 +3156,157 @@ if (TG){
   }
 }
 
+/* ===================== ADMIN PANEL (Telegram, only for ADMIN_IDS) ===================== */
+const ADMIN_IDS = [1859870653];
+const BOT_LINK = 'https://t.me/myslyvets_bram_bot';
+const tgUserId = () => { try { return TG && TG.initDataUnsafe && TG.initDataUnsafe.user ? +TG.initDataUnsafe.user.id : 0; } catch (e) { return 0; } };
+const isAdmin = () => ADMIN_IDS.indexOf(tgUserId()) >= 0;
+const GIFT_KEYS = {g:['gold', 'coin', 'золото'], c:['cry', 'gem', 'кристали'], e:['en', 'energy', 'енергія'], h:['potHp', 'pot_hp', 'зілля здоров’я'], m:['potMp', 'pot_mp', 'зілля мани'], s:['shards', 'shard', 'осколки мани']};
+const GIFT_CAP = {g:10000000, c:1000000, e:999, h:999, m:999, s:99999};
+
+function openTg(url){
+  try { if (TG && TG.openTelegramLink){ TG.openTelegramLink(url); return; } } catch (e) {}
+  window.open(url, '_blank');
+}
+function parseGift(parts){
+  const rw = {}; let ok = false; const re = /([gcehmsi])(\d+)/g; let mt;
+  while ((mt = re.exec(parts))){
+    const k = mt[1], v = +mt[2];
+    if (k === 'i'){ const r = Math.floor(v / 10), si = v % 10; if (r >= 0 && r <= 5 && SLOTS[si]){ rw.item = {r, slot:SLOTS[si]}; ok = true; } }
+    else if (v > 0){ rw[GIFT_KEYS[k][0]] = Math.min(v, GIFT_CAP[k]); ok = true; }
+  }
+  return ok ? rw : null;
+}
+function redeemGift(){
+  let raw = null;
+  try { raw = new URLSearchParams(location.search).get('gift'); } catch (e) {}
+  if (!raw || !S || !S.hero) return;
+  const bits = raw.split('.');
+  const parts = bits[0], gid = (bits[1] || '').replace(/[^a-z0-9]/gi, '').slice(0, 12), to = +(bits[2] || 0);
+  try { history.replaceState(null, '', location.pathname); } catch (e) {}
+  if (!gid) return;
+  if (to && to !== tgUserId()) return toast('Цей подарунок призначений іншому мисливцю', 'red');
+  S.giftsTaken = S.giftsTaken || [];
+  if (S.giftsTaken.indexOf(gid) >= 0) return toast('Цей подарунок уже отримано');
+  const rw = parseGift(parts); if (!rw) return;
+  S.giftsTaken.push(gid); if (S.giftsTaken.length > 300) S.giftsTaken.shift();
+  S.mail.push({id:uid(), at:Date.now(), t:'Подарунок від Системи', b:'Адміністрація гри надіслала тобі дари. Забери їх.', rw, read:0});
+  save(); render(true);
+  toast('🎁 Подарунок у пошті!', 'gold');
+  UI.view = 'mail'; render();
+}
+onHeroCreated = redeemGift;
+
+const ADM = {lvl:null, rank:null, slot:'weapon', r:4, ilvl:null, up:0, to:'', all:false, g:0, c:0, e:0, h:0, m:0, s:0, ir:-1, islot:'weapon'};
+function admNum(id, v, min, max){ return '<input class="adm-in num" id="' + id + '" type="number" inputmode="numeric" min="' + min + '" max="' + max + '" value="' + v + '">'; }
+function admSel(id, opts, cur){ return '<select class="adm-in" id="' + id + '">' + opts.map(o => '<option value="' + o[0] + '"' + (String(o[0]) === String(cur) ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select>'; }
+const slotOpts = () => SLOTS.map(s => [s, s === 'weapon' ? CLS[S.hero.cls].weapon.slot : SLOT[s].name]);
+const rarOpts = () => RAR.map((r, i) => [i, r.name]);
+
+function vAdmin(){
+  if (!isAdmin()) return win('Немає доступу', '<p class="lead">Цей розділ лише для адміністрації.</p>');
+  const h = S.hero;
+  if (ADM.lvl == null) ADM.lvl = h.lvl;
+  if (ADM.ilvl == null) ADM.ilvl = h.lvl;
+  const give = (k, label, icon, vals) => '<div class="adm-row"><span class="adm-lab">' + ic(icon) + label + '</span><div class="adm-btns">' + vals.map(v => '<button class="btn ghost sm" data-a="admAdd" data-k="' + k + '" data-n="' + v[0] + '">+' + v[1] + '</button>').join('') + '</div></div>';
+  let html = '<div class="adm-banner">' + ic('st_shield') + '<div><b>Режим адміністратора</b><small>Telegram ID ' + tgUserId() + ' · зміни застосовуються одразу й синхронізуються</small></div></div>';
+  html += win('Видати собі',
+    give('gold', 'Золото', 'coin', [[1000, '1k'], [10000, '10k'], [100000, '100k']]) +
+    give('crystals', 'Кристали', 'gem', [[100, '100'], [1000, '1k'], [10000, '10k']]) +
+    give('energy', 'Енергія', 'energy', [[25, '25'], [75, '75'], [300, '300']]) +
+    give('potHp', 'Зілля HP', 'pot_hp', [[5, '5'], [20, '20'], [100, '100']]) +
+    give('potMp', 'Зілля мани', 'pot_mp', [[5, '5'], [20, '20'], [100, '100']]) +
+    give('shards', 'Осколки мани', 'shard', [[50, '50'], [500, '500'], [5000, '5k']]) +
+    give('soul', 'Осколки душі', 'soul', [[100, '100'], [500, '500'], [1000, '1k']]));
+  html += win('Герой',
+    '<div class="adm-grid"><label>Рівень' + admNum('admLvl', ADM.lvl, 1, 60) + '</label><button class="btn blue sm" data-a="admSetLvl">Встановити рівень</button></div>' +
+    '<p class="hint" style="text-align:left">Очки характеристик перераховуються: усі (рівень−1)×5 повертаються для розподілу.</p>' +
+    '<div class="adm-lab" style="margin-top:12px">Ранг</div><div class="filters">' + RANKS.map(r => '<button class="fchip' + (h.rank === r.id ? ' on' : '') + '" data-a="admRank" data-v="' + r.id + '">' + r.id + '</button>').join('') + '</div>' +
+    '<div class="grid2" style="margin-top:4px"><button class="btn ghost sm" data-a="admHero" data-v="pts">+50 очок характеристик</button><button class="btn ghost sm" data-a="admHero" data-v="maxgear">Покращити все вдягнуте +1</button></div>');
+  html += win('Створити предмет',
+    '<div class="adm-grid3"><label>Слот' + admSel('admSlot', slotOpts(), ADM.slot) + '</label><label>Рідкість' + admSel('admRar', rarOpts(), ADM.r) + '</label><label>Рівень' + admNum('admILvl', ADM.ilvl, 1, 60) + '</label><label>Заточка' + admNum('admUp', ADM.up, 0, 10) + '</label></div>' +
+    '<div class="grid2" style="margin-top:10px"><button class="btn blue" data-a="admItem" data-v="bag">У сумку</button><button class="btn gold" data-a="admItem" data-v="equip">Одразу вдягнути</button></div>' +
+    '<button class="btn ghost sm wide" style="margin-top:8px" data-a="admItem" data-v="set">Повний комплект цієї рідкості</button>');
+  html += win('Скинути ліміти',
+    '<div class="grid2"><button class="btn ghost sm" data-a="admReset" data-v="quest">Квест дня</button><button class="btn ghost sm" data-a="admReset" data-v="wheel">Безкоштовне колесо</button>' +
+    '<button class="btn ghost sm" data-a="admReset" data-v="arena">Арена 5/5</button><button class="btn ghost sm" data-a="admReset" data-v="shop">Покупки енергії</button>' +
+    '<button class="btn ghost sm" data-a="admReset" data-v="run">Вийти з брами</button><button class="btn ghost sm" data-a="admReset" data-v="mail">Легендарка з пошти зараз</button></div>');
+  const gnum = (k, label) => '<label>' + label + admNum('admG' + k, ADM[k] || 0, 0, GIFT_CAP[k]) + '</label>';
+  html += win('Видати гравцю',
+    '<p class="lead">Подарунок приходить гравцю повідомленням від бота з кнопкою «Забрати». Гравець має хоч раз натиснути /start у боті.</p>' +
+    '<div class="adm-grid" style="margin-top:10px"><label>Telegram ID гравця<input class="adm-in" id="admTo" inputmode="numeric" placeholder="напр. 123456789" value="' + esc(ADM.to) + '"></label>' +
+    '<label class="adm-check"><input type="checkbox" id="admAll"' + (ADM.all ? ' checked' : '') + '> Усім гравцям</label></div>' +
+    '<div class="adm-grid3" style="margin-top:8px">' + gnum('g', 'Золото') + gnum('c', 'Кристали') + gnum('e', 'Енергія') + gnum('h', 'Зілля HP') + gnum('m', 'Зілля мани') + gnum('s', 'Осколки') + '</div>' +
+    '<div class="adm-grid3" style="margin-top:8px"><label>Предмет' + admSel('admGR', [[-1, 'без предмета']].concat(rarOpts()), ADM.ir) + '</label><label>Слот' + admSel('admGSlot', slotOpts(), ADM.islot) + '</label></div>' +
+    '<button class="btn gold wide" style="margin-top:12px" data-a="admGift">' + ic('mail') + 'Надіслати через бота</button>' +
+    '<p class="hint" style="text-align:left">Відкриється чат із ботом; він перевірить, що команду дав адмін, і розішле подарунки. Звіт прийде в чат.</p>');
+  html += win('Бот і дані',
+    '<div class="grid2"><button class="btn blue sm" data-a="admBot" data-v="admin">Панель у боті (/admin)</button><button class="btn ghost sm" data-a="admBot" data-v="">Чат із ботом</button></div>' +
+    '<table class="tbl" style="margin-top:10px"><tr><td>Розмір збереження</td><td>' + (JSON.stringify(S).length / 1024).toFixed(1).replace('.', ',') + ' КБ</td></tr><tr><td>Хмара Telegram</td><td>' + (Cloud.ready ? 'працює' : 'немає') + '</td></tr><tr><td>Речей у сумці</td><td>' + S.bag.length + '/' + S.bagCap + '</td></tr></table>');
+  return html;
+}
+function readAdm(){
+  const v = id => { const el = document.getElementById(id); return el ? el.value : null; };
+  const n = (id, min, max) => clamp(Math.round(+v(id) || 0), min, max);
+  if (v('admLvl') != null) ADM.lvl = n('admLvl', 1, 60);
+  if (v('admSlot') != null){ ADM.slot = v('admSlot'); ADM.r = n('admRar', 0, 5); ADM.ilvl = n('admILvl', 1, 60); ADM.up = n('admUp', 0, 10); }
+  if (v('admTo') != null){
+    ADM.to = (v('admTo') || '').replace(/\D/g, ''); ADM.all = !!(document.getElementById('admAll') || {}).checked;
+    for (const k of Object.keys(GIFT_KEYS)) ADM[k] = n('admG' + k, 0, GIFT_CAP[k]);
+    ADM.ir = n('admGR', -1, 5); ADM.islot = v('admGSlot');
+  }
+}
+const admDone = (msg) => { save(); rerender(); toast(msg, 'gold'); haptic('success'); };
+Object.assign(extraActions, {
+  admAdd(d){ if (!isAdmin()) return; readAdm(); const k = d.k, n = +d.n; S[k] = (S[k] || 0) + n; if (k === 'energy') S.energyTs = Date.now(); admDone('+' + fmt(n)); },
+  admSetLvl(){ if (!isAdmin()) return; readAdm(); const h = S.hero; h.lvl = ADM.lvl; h.xp = 0; h.stats = Object.assign({}, CLS[h.cls].base); h.pts = (h.lvl - 1) * 5; fillLoadout(); admDone('Рівень ' + h.lvl + ', очок: ' + h.pts); },
+  admRank(d){ if (!isAdmin()) return; readAdm(); S.hero.rank = d.v; fillLoadout(); admDone('Ранг ' + d.v); },
+  admHero(d){
+    if (!isAdmin()) return; readAdm();
+    if (d.v === 'pts'){ S.hero.pts += 50; admDone('+50 очок'); }
+    else { let n = 0; for (const s of SLOTS){ const it = S.equip[s]; if (it && it.up < 10){ it.up++; n++; } } admDone('Покращено речей: ' + n); }
+  },
+  admItem(d){
+    if (!isAdmin()) return; readAdm();
+    const slots = d.v === 'set' ? SLOTS : [ADM.slot];
+    let last = null;
+    for (const s of slots){
+      const it = makeItem(s, ADM.ilvl, ADM.r, S.hero.cls); it.up = ADM.up;
+      if (d.v === 'equip' || d.v === 'set'){ const old = S.equip[s]; S.equip[s] = it; it.nw = 0; if (old && S.bag.length < S.bagCap) S.bag.push(old); }
+      else { if (S.bag.length >= S.bagCap) return toast('Сумка повна', 'red'); S.bag.push(it); }
+      last = it;
+    }
+    fillLoadout();
+    admDone(d.v === 'set' ? 'Комплект вдягнуто: ' + RAR[ADM.r].name.toLowerCase() : esc(last.name) + (d.v === 'equip' ? ' вдягнуто' : ' у сумці'));
+  },
+  admReset(d){
+    if (!isAdmin()) return; readAdm();
+    const v = d.v;
+    if (v === 'quest'){ const q = S.quest; S.quest = freshQuest(q.streak, q.best); }
+    else if (v === 'wheel') S.wheel.free = true;
+    else if (v === 'arena') S.arena.fights = 5;
+    else if (v === 'shop') S.shop.energy = 0;
+    else if (v === 'run'){ if (S.run){ S.run = null; closeBattle(); } }
+    else if (v === 'mail') S.mail.forEach(m => { if (m.avail) m.avail = 0; });
+    admDone('Готово');
+  },
+  admGift(){
+    if (!isAdmin()) return; readAdm();
+    if (!ADM.all && !/^\d{5,15}$/.test(ADM.to)) return toast('Вкажи Telegram ID гравця або «Усім»', 'red');
+    let parts = '';
+    for (const k of Object.keys(GIFT_KEYS)) if (ADM[k] > 0) parts += k + ADM[k];
+    if (ADM.ir >= 0) parts += 'i' + (ADM.ir * 10 + SLOTS.indexOf(ADM.islot));
+    if (!parts) return toast('Нічого не вибрано для видачі', 'red');
+    const payload = 'give_' + (ADM.all ? '0' : ADM.to) + '_' + parts;
+    if (payload.length > 64) return toast('Забагато всього за раз — зменш кількість полів', 'red');
+    openTg(BOT_LINK + '?start=' + payload);
+  },
+  admBot(d){ openTg(BOT_LINK + (d.v ? '?start=' + d.v : '')); },
+});
+extraViews.admin = ['Адмін-панель', vAdmin];
+extraMore = () => isAdmin() ? '<div class="mgroup"><h3>Адміністрація</h3><div class="mtiles"><button class="mt adm-tile" data-a="go" data-v="admin">' + ic('st_shield') + 'Адмін-панель</button></div></div>' : '';
+setTimeout(() => { if (S && S.hero) redeemGift(); }, 1800);
+
 /* ===================== ACTIONS & BOOT ===================== */
 function confirmSheet(title, text, yesAct, yesLabel, yesData){
   openSheet(iiPlate(title, 'red') + '<p>' + text + '</p><div class="grid2"><button class="btn red" data-a="' + yesAct + '"' + (yesData ? ' data-v="' + esc(yesData) + '"' : '') + '>' + yesLabel + '</button><button class="btn ghost" data-a="closeSheet">Скасувати</button></div>');
@@ -3259,10 +3443,13 @@ const A = {
   mailClaim(d){
     const m = S.mail.find(x => x.id === d.v); if (!m || m.claimed || (m.avail || 0) > Date.now()) return;
     const rw = m.rw || {}; const got = [];
+    if (rw.item && S.bag.length >= S.bagCap) return toast('Звільни місце в сумці', 'red');
     if (rw.cry){ S.crystals += rw.cry; got.push(ic('gem') + rw.cry); }
     if (rw.gold){ S.gold += rw.gold; got.push(ic('coin') + fmt(rw.gold)); }
     if (rw.potHp){ S.potHp += rw.potHp; got.push(ic('pot_hp') + rw.potHp); }
     if (rw.potMp){ S.potMp += rw.potMp; got.push(ic('pot_mp') + rw.potMp); }
+    if (rw.en){ S.energy = Math.min(999, S.energy + rw.en); got.push(ic('energy') + rw.en); }
+    if (rw.shards){ S.shards += rw.shards; got.push(ic('shard') + rw.shards); }
     let it = null;
     if (rw.item){ if (S.bag.length >= S.bagCap) return toast('Звільни місце в сумці', 'red'); it = makeItem(rw.item.slot, S.hero.lvl, rw.item.r, S.hero.cls); S.bag.push(it); }
     m.claimed = 1; m.read = 1; save(); rerender();
@@ -3291,7 +3478,7 @@ const A = {
   confirmName(d){
     const i = $('#heroName'); const v = ((i && i.value) || '').trim().replace(/\s+/g, ' ').slice(0, 16);
     if (!v) return toast('Введи ім’я', 'red');
-    createHero(d.v, v); closeSheet();
+    createHero(d.v, v); closeSheet(); setTimeout(() => onHeroCreated(), 600);
     const intro = $('#intro'); intro.hidden = true; intro.innerHTML = ''; document.body.style.overflow = '';
     UI.tab = 'gates'; UI.view = null; render(); giftSheet();
   },
@@ -3342,7 +3529,7 @@ const A = {
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-a]'); if (!el) return;
   if (el.disabled || el.getAttribute('aria-disabled') === 'true') return;
-  const fn = A[el.dataset.a]; if (fn) fn(el.dataset, el, e);
+  const fn = A[el.dataset.a] || extraActions[el.dataset.a]; if (fn) fn(el.dataset, el, e);
 });
 document.addEventListener('keydown', e => {
   if (e.key !== 'Enter' && e.key !== ' ') return;
